@@ -41,7 +41,7 @@ def replace_italics(matchobj):
 
 def replace_truetype(matchobj):
     return '<code>' + matchobj.group(1) + '</code>'
-    
+
 def to_html(content):
     html = ET.Element('html')
     head = ET.SubElement(html, 'head')
@@ -93,7 +93,7 @@ def to_html(content):
     htmlstring = re.sub(r'(?<=\s)/(\S[^/<>]*)/', replace_italics, htmlstring, flags=re.DOTALL)
     htmlstring = re.sub(r'(?<=\s)=(\S[^=<>]*)=', replace_truetype, htmlstring, flags=re.DOTALL)
 
-    
+
     # Replaces !c!d!h!s with suit symbols
     htmlstring = htmlstring.replace('!c', '<span class="ccolor">&clubs;</span>')
     htmlstring = htmlstring.replace('!d', '<span class="dcolor">&diams;</span>')
@@ -111,7 +111,7 @@ def to_html(content):
 if __name__ == '__main__':
     import sys
     import os
-    
+
     outputfile = ''
     if len(sys.argv) < 2:
         print("What's the name of the file you want to convert?")
@@ -126,8 +126,8 @@ if __name__ == '__main__':
 
         bml.content_from_file(sys.argv[1])
         outputfile = os.path.basename(sys.argv[1]).split('.')[0]
-        
+
     h = to_html(bml.content)
-    f = open(outputfile + '.htm', 'w')
+    f = open(outputfile + '.html', 'w')
     f.write(h)
     f.close()
