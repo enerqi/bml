@@ -42,6 +42,23 @@ def replace_italics(matchobj):
 def replace_truetype(matchobj):
     return '<code>' + matchobj.group(1) + '</code>'
 
+def replace_markdown_link(matchobj):
+    link_text = matchobj.group(1).strip()
+    fragment_link_target = matchobj.group(2).strip()
+    norm_target = normalise_header_id(fragment_link_target)
+    return '<a href="{target}"/>{text}</a>'.format(target=norm_target, text=link_text)
+
+def normalise_header_id(text):
+    # don't want spaces
+    # don't want text that can be replaced with html suit special symbols
+    def escape_suits(match):
+        suit_text = match.group(0)
+        return suit_text.lower()
+
+    norm = text.replace(" ", "_").strip()
+    norm = re.sub(r"\d[CDHS]", escape_suits, norm)
+    return norm
+
 def to_html(content):
     html = ET.Element('html')
     head = ET.SubElement(html, 'head')
@@ -63,16 +80,18 @@ def to_html(content):
             element.attrib['class'] = 'bidtable'
             html_bidtable(element, text.children)
         elif content_type == bml.ContentType.H1:
-            element = ET.SubElement(body, 'h1')
+            # The id="text" part for the header elements unfortunately could be regex replaced
+            # later, so normalise it so that cannot happen given known suit replacements
+            element = ET.SubElement(body, 'h1', {"id": normalise_header_id(text)})
             element.text = text
         elif content_type == bml.ContentType.H2:
-            element = ET.SubElement(body, 'h2')
+            element = ET.SubElement(body, 'h2', {"id": normalise_header_id(text)})
             element.text = text
         elif content_type == bml.ContentType.H3:
-            element = ET.SubElement(body, 'h3')
+            element = ET.SubElement(body, 'h3', {"id": normalise_header_id(text)})
             element.text = text
         elif content_type == bml.ContentType.H4:
-            element = ET.SubElement(body, 'h4')
+            element = ET.SubElement(body, 'h4', {"id": normalise_header_id(text)})
             element.text = text
         elif content_type == bml.ContentType.LIST:
             element = ET.SubElement(body, 'ul')
@@ -89,10 +108,20 @@ def to_html(content):
     title.text = bml.meta['TITLE']
     htmlstring = str(ET.tostring(html), 'UTF8')
 
+    suit_replace_regex = re.compile(r"""
+        \d  # a number
+        (
+            [CDHS]  # CDHS to replace with spans, but will have to check it's not in [] or () somehow
+            (?![^\(]*\)) # but was not inside parentheses, the link target syntax
+            | # or an N (but not NT which will become NT after replacement)
+            N(?!T)
+        )+ # 1+ suit or N symbols to replace
+        """, re.VERBOSE)
+    htmlstring = re.sub(suit_replace_regex, html_replace_suits, htmlstring)
+
     htmlstring = re.sub(r'(?<=\s)\*(\S[^*<>]*)\*', replace_strong, htmlstring, flags=re.DOTALL)
     htmlstring = re.sub(r'(?<=\s)/(\S[^/<>]*)/', replace_italics, htmlstring, flags=re.DOTALL)
     htmlstring = re.sub(r'(?<=\s)=(\S[^=<>]*)=', replace_truetype, htmlstring, flags=re.DOTALL)
-
 
     # Replaces !c!d!h!s with suit symbols
     htmlstring = htmlstring.replace('!c', '<span class="ccolor">&clubs;</span>')
@@ -104,7 +133,13 @@ def to_html(content):
     htmlstring = htmlstring.replace('---', '&mdash;')
     htmlstring = htmlstring.replace('--', '&ndash;')
 
-    htmlstring = re.sub(r'\d([CDHS]|N(?!T))+', html_replace_suits, htmlstring)
+    # (?!...) negative lookahead assert
+    # [link text](target url / relative fragment url)
+    # link text may have had text replaced to use suit symbols etc.
+    # The target () needs to match the target header "id", so must not be substituted
+    # target url avoids text replacement by normalising that text, normalised in the
+    # same way as a header id
+    htmlstring = re.sub(r'\[(.*?)]\((.+?)\)', replace_markdown_link, htmlstring)
 
     return htmlstring
 

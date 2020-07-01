@@ -1,12 +1,12 @@
 
 * BML - Bridge Bidding Markup Language
-  
+
   The purpose of the /Bridge Bidding Markup Language/ (BML) is to
   offer an easy way of documenting contract bridge bidding
   systems. The file(s) created are supposed to be easy to read for
   both human and machines. A BML-file is created using an ordinary
   text editor (like /Notepad/).
-  
+
   Programs have been written in order to export BML-files to the
   following formats:
 
@@ -30,7 +30,7 @@
   example.bss to see how BML converts to different formats.
 
 * Using the BML converters
-  
+
   You need Python v.3 or higher in order to use the BML
   converters. Get it from http://www.python.org.
 
@@ -191,7 +191,7 @@
     Disclosure; not HTML nor LaTeX.
 
 *** Copy/Cut/Paste
-    
+
     You could copy/cut sections of bidding tables. This is done by
     writing #COPY <name> or #CUT <name>. The <name> is later used
     when pasting the copy. The difference between #COPY and #CUT is
@@ -298,7 +298,7 @@
    S A987xx - Q9xx Axx
    W QT KQxxxx KTx Jx
    #+end_src
-   
+
    The first row is the header row. The header row adds additional
    information about the deal, and may be excluded if you only want to
    show the cards. The header row can include the following
@@ -325,7 +325,7 @@
    readable. The board number may have a # in front of it. You may
    have any other words in the header row as well, to increase
    readability.
-   
+
    After the (optional) header row, the hands are specified. Each hand
    is written on its own row, starting with the player holding the
    hand (~N E S W~), optionally followed by a colon. Any hand may be
@@ -334,7 +334,7 @@
    separated by space, in the order spades, hearts, diamonds clubs. A
    dash ~-~ is used to notate a void. A card is notated by a number,
    ~A K Q J T~ or ~x~.
-   
+
    Here's an example of how the above example diagram may be more
    readable:
 
@@ -368,7 +368,7 @@
 
    If you want to write text which shouldn't be shown in the export,
    use ~//comment here~.
-   
+
 ** Including other files
 
    It is possible to split your system notes into different files. To
@@ -384,3 +384,13 @@
    #+BEGIN_SRC
    /Here's/ *an* =example= (italic, bold, monospace)
    #+END_SRC
+
+** Links for html output
+
+  A basic html link system exists where every header has an html id generated that matches the header text.
+  A hash in front of the header text then creates an intra html document link.
+  External links are not currently supported.
+
+  #+BEGIN_SRC
+  [This is link text seen in the documentation](#this is some header text that must match to be linked to)
+  #+END_SRC
