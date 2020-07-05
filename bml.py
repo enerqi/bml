@@ -45,7 +45,7 @@ class Diagram:
         dealer = re.search(r'(?:\A|\s)([NESW]),?(?:\Z|\s)', firstrow)
         if dealer:
             self.dealer = dealer.group(1)
-            
+
         vul = re.search(r'(?:\A|\s)(All|None|EW|NS),?(?:\Z|\s)', firstrow)
         if vul:
             self.vul = vul.group(1)
@@ -65,7 +65,7 @@ class Diagram:
             contract = re.search(r'(?:\A|\s)(\d)([SHDCN])(XX?)?([NESW]),?(?:\Z|\s)', firstrow)
             if contract:
                 self.contract = contract.groups()
-                
+
 class Node:
     """A node in a bidding table"""
     def __init__(self, bid, desc, indentation, parent=None, desc_indentation=-1):
@@ -147,7 +147,7 @@ def create_bidtree(text):
         clipboard[copy.group(2)] = value # group2=key
         text = text[:copy.end(3)]+text[copy.end():]
         text = text[:copy.start()]+text[copy.start(3):]
-        
+
     # breaks when no more PASTE in bidtable
     while True:
         paste = re.search(r'^(\s*)#\s*PASTE\s+(\S+)[^\S\n]*(.*)\n?', text, flags=re.MULTILINE)
@@ -163,7 +163,7 @@ def create_bidtree(text):
         for l in range(len(lines)):
             lines[l] = indentation + lines[l]
         text = text[:paste.start()] + '\n'.join(lines) + '\n' + text[paste.end():]
-        
+
     hide = re.search(r'^\s*#\s*HIDE\s*\n', text, flags=re.MULTILINE)
     if hide:
         root.export = False
@@ -179,7 +179,7 @@ def create_bidtree(text):
         if row.strip() == '':
             continue # could perhaps be nicer by stripping spaces resulting from copy/paste
         indentation = len(row) - len(row.lstrip())
-        
+
         # If the indentation is at the same level as the last bids
         # description indentation, the description should just
         # continue but with a line break
@@ -218,7 +218,7 @@ class ContentType:
 
 def get_content_type(text):
     global meta, vulnerability, seat
-    
+
     if text.startswith('****'):
         return (ContentType.H4, text[4:].lstrip())
     if text.startswith('***'):
@@ -227,7 +227,7 @@ def get_content_type(text):
         return (ContentType.H2, text[2:].lstrip())
     if text.startswith('*'):
         return (ContentType.H1, text[1:].lstrip())
-    
+
     # The first element is empty, therefore [1:]
     if(re.match(r'^\s*-', text)):
         if text.find(' :: ') >= 0:
@@ -237,11 +237,11 @@ def get_content_type(text):
     if(re.match(r'^\s*#VUL', text)):
         vulnerability = text.split()[1]
         return None
-        
+
     if(re.match(r'^\s*#SEAT', text)):
         seat = text.split()[1]
         return None
-        
+
     if(re.match(r'^\s*1\.', text)):
         return (ContentType.ENUM, re.split(r'^\s*\d*\.\s*', text, flags=re.MULTILINE)[1:])
 
@@ -251,7 +251,7 @@ def get_content_type(text):
             if r:
                 table.append(r.split())
         return (ContentType.BIDDING, table)
-        
+
     if(re.match(r'^\s*\(?\d[A-Za-z]+', text)):
         bidtree = create_bidtree(text)
         if bidtree:
@@ -264,7 +264,7 @@ def get_content_type(text):
         rows = text.split('\n')
         for r in rows:
             table.append([c.strip() for c in re.findall(r'(?<=\|)[^\|]+', r)])
-        return (ContentType.TABLE, table)        
+        return (ContentType.TABLE, table)
 
     # diagrams
     hands = re.findall(r"""^\s*([NESW]):?\s*
@@ -276,9 +276,9 @@ def get_content_type(text):
 
     if hands and len(hands) + 2 >= len(text.split('\n')):
         return (ContentType.DIAGRAM, Diagram(text.split('\n')[0], hands))
-    
+
     metamatch = re.match(r'^\s*#\+(\w+):\s*(.*)', text)
-    
+
     if(metamatch):
         keyword = metamatch.group(1)
         if keyword in meta:
@@ -286,30 +286,30 @@ def get_content_type(text):
         value = metamatch.group(2)
         meta[keyword] = value
         return None
-                
+
     if(re.match(r'^\s*#', text)):
         bidtree = create_bidtree(text)
         if bidtree:
             return (ContentType.BIDTABLE, bidtree)
         return None
-        
+
     if(re.search(r'\S', text)):
         text = re.sub(r'\n +', '\n', text.strip())
         return (ContentType.PARAGRAPH, text)
-    
+
     return None
 
 def include_file(matchobj):
     filename = matchobj.group(1)
     text = ''
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding="utf-8") as f:
         text = f.read()
     return '\n' + text + '\n'
 
 def content_from_file(filename):
     global content
     paragraphs = []
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding="utf-8") as f:
         text = f.read()
         text = re.sub(r'^\s*#\s*INCLUDE\s*(\S+)\s*\n?', include_file, text, flags=re.MULTILINE)
         text = re.sub(r'^//.*\n', '', text, flags=re.MULTILINE)
@@ -320,7 +320,7 @@ def content_from_file(filename):
         content_type = get_content_type(c)
         if content_type:
             content.append(content_type)
-            
+
 if __name__ == '__main__':
     # print('To use BML, use the subprograms bml2html, bml2latex or bml2bss')
     content_from_file('test.bml')

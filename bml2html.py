@@ -73,6 +73,13 @@ def to_html(content):
     open_sans_font_link.attrib['href'] = "https://fonts.googleapis.com/css?family=Open Sans"
     open_sans_font_link.attrib['rel'] = "stylesheet"
 
+    meta_charset = ET.SubElement(head, 'meta')
+    meta_charset.attrib['charset'] = 'UTF-8'
+
+    meta_keywords = ET.SubElement(head, 'meta')
+    meta_keywords.attrib['name'] = "keywords"
+    meta_keywords.attrib['content'] = "contract, bridge, bidding"
+
     body = ET.SubElement(html, 'body')
     body.attrib['class'] = "content"
 
