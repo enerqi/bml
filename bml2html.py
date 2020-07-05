@@ -2,13 +2,15 @@ import re
 import bml
 import xml.etree.ElementTree as ET
 
-def html_bidtable(et_element, children):
+def html_bidtable(et_element, children, indent_level_is_even):
+    # `indent_level_is_even` let's us alternately cycle the css class for every indent of the bid table
+    div_class = "start" if indent_level_is_even else "startOddIndent"
     if len(children) > 0:
         ul = ET.SubElement(et_element, 'ul')
         for c in children:
             li = ET.SubElement(ul, 'li')
             div = ET.SubElement(li, 'div')
-            div.attrib['class'] = 'start'
+            div.attrib['class'] = div_class
             desc_rows = c.desc.split('\\n')
             bid = re.sub(r'^P$', 'Pass', c.bid)
             bid = re.sub(r'^R$', 'Rdbl', bid)
@@ -19,10 +21,10 @@ def html_bidtable(et_element, children):
             for dr in desc_rows:
                 rowli = ET.SubElement(ul, 'li')
                 rowdiv = ET.SubElement(rowli, 'div')
-                rowdiv.attrib['class'] = 'start'
+                rowdiv.attrib['class'] = div_class
                 rowdiv.text = ' '
                 rowdiv.tail = dr
-            html_bidtable(li, c.children)
+            html_bidtable(li, c.children, not indent_level_is_even)
 
 def html_replace_suits(matchobj):
     text = matchobj.group(0)
@@ -66,7 +68,13 @@ def to_html(content):
     link.attrib['rel'] = 'stylesheet'
     link.attrib['type'] = 'text/css'
     link.attrib['href'] = 'bml.css'
+
+    open_sans_font_link = ET.SubElement(head, 'link')
+    open_sans_font_link.attrib['href'] = "https://fonts.googleapis.com/css?family=Open Sans"
+    open_sans_font_link.attrib['rel'] = "stylesheet"
+
     body = ET.SubElement(html, 'body')
+    body.attrib['class'] = "content"
 
     for c in content:
         content_type, text = c
@@ -78,7 +86,7 @@ def to_html(content):
                 continue
             element = ET.SubElement(body, 'div')
             element.attrib['class'] = 'bidtable'
-            html_bidtable(element, text.children)
+            html_bidtable(element, text.children, indent_level_is_even=True)
         elif content_type == bml.ContentType.H1:
             # The id="text" part for the header elements unfortunately could be regex replaced
             # later, so normalise it so that cannot happen given known suit replacements

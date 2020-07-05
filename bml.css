@@ -1,11 +1,26 @@
+    .content {
+        margin: auto;
+        max-width: 900px;
+    }
+
     div.start {
         display: inline-block;
         vertical-align: top;
-        width: 60px;
+        width: 72px;
+        background-color: rgb(165, 252, 247, 0.4);
+        padding-left: 8px;
+    }
+
+    div.startOddIndent {
+        display: inline-block;
+        vertical-align: top;
+        width: 72px;
+        background-color: rgb(135, 206, 250, 0.4);
+        padding-left: 8px;
     }
 
     div.bidtable {
-        width: 700px;
+        width: 900px;
     }
 
     div.bidtable ul {
@@ -18,7 +33,7 @@
         list-style-type: none;
         margin: 0;
         padding: 0;
-        margin-left: 60px;
+        margin-left: 80px;
     }
 
     .ccolor {
