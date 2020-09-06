@@ -1,3 +1,7 @@
+    body {
+        font-family: 'Open Sans';
+    }
+
     .content {
         margin: auto;
         max-width: 900px;
@@ -54,4 +58,11 @@
 
     a:link {
         text-decoration: none;
+    }
+
+    .top-link {
+        z-index: 99;
+        position: fixed;
+        bottom: 5%;
+        left: 95%;
     }

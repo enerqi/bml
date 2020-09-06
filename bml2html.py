@@ -119,6 +119,12 @@ def to_html(content):
                 li = ET.SubElement(element, 'li')
                 li.text = l
 
+    # <a href="#" class="top-link">Top</a>
+    top_link = ET.SubElement(body, 'a')
+    top_link.attrib['class'] = 'top-link'
+    top_link.attrib['href'] = '#'
+    top_link.text = 'Top'
+
     title = ET.SubElement(head, 'title')
     title.text = bml.meta['TITLE']
     htmlstring = str(ET.tostring(html), 'UTF8')
