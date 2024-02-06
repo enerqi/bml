@@ -56,8 +56,10 @@
         color: Black
     }
 
-    a:link {
+    a:link,
+    a:visited {
         text-decoration: none;
+        color: rgb(0, 102, 204);
     }
 
     .top-link {
@@ -65,4 +67,73 @@
         position: fixed;
         bottom: 5%;
         left: 95%;
+    }
+
+    @media all and (min-width: 1150px) {
+        .nav-links {
+            z-index: 99;
+            position: fixed;
+            top: 1%;
+            left: 2%;
+            width: 10%;
+            font-size: xx-small;
+            color: green;
+        }
+
+        .nav-links a {
+            color: inherit;
+        }
+
+        .nav-links ul {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+    }
+
+    @media all and (min-width: 1300px) {
+        .nav-links {
+            z-index: 99;
+            position: fixed;
+            top: 1%;
+            left: 2%;
+            width: 12.5%;
+            font-size: xx-small;
+            color: green;
+        }
+
+        .nav-links a {
+            color: inherit;
+        }
+
+        .nav-links ul {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+    }
+
+    @media all and (min-width: 1450px) {
+        .nav-links {
+            z-index: 99;
+            position: fixed;
+            top: 1%;
+            left: 2%;
+            width: 15%;
+            font-size: x-small;
+            color: green;
+        }
+
+        .nav-links a {
+            color: inherit;
+        }
+
+        .nav-links ul {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+    }
+
+    @media not all and (min-width: 1150px) {
+        .nav-links {
+            display: none;
+        }
     }
