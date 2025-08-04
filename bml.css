@@ -186,7 +186,6 @@
     @media all and (min-width: 1046px) and (max-width: 1179px) {
         .content {
             margin-right: 2%;
-            font-size: small;
         }
         div.bidtable {
             width: 700px;
