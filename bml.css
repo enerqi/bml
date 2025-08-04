@@ -69,15 +69,105 @@
         left: 95%;
     }
 
-    @media all and (min-width: 1150px) {
+     @media all and (max-width: 699px) {
+        .content {
+            margin: 0.5%;
+            font-size: small;
+            max-width: 600px;
+        }
+
+        div.bidtable {
+            width: 550px;
+        }
+
+        /*smaller font, compress the bid columns*/
+        div.start {
+            width: 48px;
+            padding-left: 4px;
+        }
+        div.startOddIndent {
+            width: 48px;
+            padding-left: 4px;
+        }
+
+        .nav-links {
+            display: none;
+        }
+    }
+
+    @media all and (max-width: 799px) {
+        .content {
+            margin: 0.5%;
+            font-size: small;
+            max-width: 700px;
+        }
+
+        div.bidtable {
+            width: 650px;
+        }
+
+        /*smaller font, compress the bid columns*/
+        div.start {
+            width: 48px;
+            padding-left: 4px;
+        }
+        div.startOddIndent {
+            width: 48px;
+            padding-left: 4px;
+        }
+
+        .nav-links {
+            display: none;
+        }
+    }
+
+    @media all and (max-width: 899px) {
+        .content {
+            margin: 1%;
+            font-size: normal;
+            max-width: 800px;
+        }
+
+        div.bidtable {
+            width: 750px;
+        }
+
+        .nav-links {
+            display: none;
+        }
+    }
+
+    @media all and (min-width: 900px) and (max-width: 1045px) {
+        /*up to 1045*/
+        .content {
+            margin-right: 1%;
+            font-size: small;
+            max-width: 800px;
+        }
+        div.bidtable {
+            width: 700px;
+        }
+
+        /*pair with smaller font*/
+        div.start {
+            width: 48px;
+            padding-left: 4px;
+        }
+        div.startOddIndent {
+            width: 48px;
+            padding-left: 4px;
+        }
+
         .nav-links {
             z-index: 99;
             position: fixed;
             top: 1%;
-            left: 2%;
+            left: 0%;
             width: 10%;
-            font-size: xx-small;
+            font-size: small;
             color: green;
+            overflow: auto;
+            height: 97%;
         }
 
         .nav-links a {
@@ -85,8 +175,81 @@
         }
 
         .nav-links ul {
-            margin-top: 2px;
+            margin-top: 4px;
             margin-bottom: 2px;
+            /*padding makes the link chunky, not the <a> */
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+
+    @media all and (min-width: 1046px) and (max-width: 1179px) {
+        .content {
+            margin-right: 2%;
+            font-size: small;
+        }
+        div.bidtable {
+            width: 700px;
+        }
+
+        /*pair with smaller font*/
+        div.start {
+            width: 48px;
+            padding-left: 4px;
+        }
+        div.startOddIndent {
+            width: 48px;
+            padding-left: 4px;
+        }
+
+        .nav-links {
+            z-index: 99;
+            position: fixed;
+            top: 1%;
+            left: 1%;
+            width: 10%;
+            font-size: small;
+            color: green;
+            overflow: auto;
+            height: 97%;
+        }
+
+        .nav-links a {
+            color: inherit;
+        }
+
+        .nav-links ul {
+            margin-top: 4px;
+            margin-bottom: 2px;
+            /*padding makes the link chunky, not the <a> */
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+
+    @media all and (min-width: 1180px) {
+        .nav-links {
+            z-index: 99;
+            position: fixed;
+            top: 1%;
+            left: 1%;
+            width: 10%;
+            font-size: small;
+            color: green;
+            overflow: auto;
+            height: 97%;
+        }
+
+        .nav-links a {
+            color: inherit;
+        }
+
+        .nav-links ul {
+            margin-top: 4px;
+            margin-bottom: 2px;
+            /*padding makes the link chunky, not the <a> */
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
     }
 
@@ -97,8 +260,10 @@
             top: 1%;
             left: 2%;
             width: 12.5%;
-            font-size: xx-small;
+            font-size: small;
             color: green;
+            overflow: auto;
+            height: 97%;
         }
 
         .nav-links a {
@@ -106,8 +271,11 @@
         }
 
         .nav-links ul {
-            margin-top: 2px;
+            margin-top: 4px;
             margin-bottom: 2px;
+            /*padding makes the link chunky, not the <a> */
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
     }
 
@@ -118,8 +286,10 @@
             top: 1%;
             left: 2%;
             width: 15%;
-            font-size: x-small;
+            font-size: small;
             color: green;
+            overflow: auto;
+            height: 97%;
         }
 
         .nav-links a {
@@ -127,13 +297,9 @@
         }
 
         .nav-links ul {
-            margin-top: 2px;
+            margin-top: 4px;
             margin-bottom: 2px;
-        }
-    }
-
-    @media not all and (min-width: 1150px) {
-        .nav-links {
-            display: none;
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
     }
