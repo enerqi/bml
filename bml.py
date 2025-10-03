@@ -313,13 +313,18 @@ def content_from_file(filename):
         text = f.read()
         text = re.sub(r'^\s*#\s*INCLUDE\s*(\S+)\s*\n?', include_file, text, flags=re.MULTILINE)
         text = re.sub(r'^//.*\n', '', text, flags=re.MULTILINE)
-        text = re.sub(r'//.*', '', text)
+
+        # WARN: this strips real links "blah blah [link text](#https://foo.com)" is chopped to
+        # "blah blah [link text](#https:/" not sure what other problem it solves and what may break by removing it
+        # text = re.sub(r'//.*', '', text)
+
         paragraphs = re.split(r'([ ]*\n){2,}', text)
 
     for c in paragraphs:
         content_type = get_content_type(c)
         if content_type:
             content.append(content_type)
+
 
 if __name__ == '__main__':
     # print('To use BML, use the subprograms bml2html, bml2latex or bml2bss')
