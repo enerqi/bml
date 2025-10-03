@@ -1,5 +1,10 @@
+    :root {
+        --nav-link-color: Sienna;
+    }
+
     body {
         font-family: 'Open Sans';
+        background: antiquewhite;
     }
 
     .content {
@@ -41,7 +46,7 @@
     }
 
     .ccolor {
-        color: DarkBlue
+        color: MediumSeaGreen
     }
 
     .dcolor {
@@ -165,7 +170,7 @@
             left: 0%;
             width: 10%;
             font-size: small;
-            color: green;
+            color: var(--nav-link-color);
             overflow: auto;
             height: 97%;
         }
@@ -208,7 +213,7 @@
             left: 1%;
             width: 10%;
             font-size: small;
-            color: green;
+            color: var(--nav-link-color);
             overflow: auto;
             height: 97%;
         }
@@ -234,7 +239,7 @@
             left: 1%;
             width: 11.0%;
             font-size: small;
-            color: green;
+            color: var(--nav-link-color);
             overflow: auto;
             height: 97%;
         }
@@ -260,7 +265,7 @@
             left: 2%;
             width: 12.5%;
             font-size: small;
-            color: green;
+            color: var(--nav-link-color);
             overflow: auto;
             height: 97%;
         }
@@ -286,7 +291,7 @@
             left: 2%;
             width: 15%;
             font-size: small;
-            color: green;
+            color: var(--nav-link-color);
             overflow: auto;
             height: 97%;
         }
