@@ -89,7 +89,12 @@ class Node:
         self.bidrepr = bid
         bids = re.findall(r"\d[A-Za-z]+", self.bidrepr)
         if bids and not "(" in self.bidrepr:
-            self.bidrepr = "P".join(bids)
+            self.bidrepr = " (P) ".join(bids)
+
+        # if bids and not '(' in self.bidrepr:
+        #     self.bidrepr = ' '.join(bids)
+        # if bids and '(' in self.bidrepr:
+        #     print(self.bidrepr)
 
     def add_child(self, bid, desc, indentation, desc_indentation):
         """appends a new child Node to the node"""
