@@ -3,6 +3,131 @@ import bml
 import xml.etree.ElementTree as ET
 
 
+# --- inline markup -----------------------------------------------------------
+#
+# Inline bml markup (suit symbols, *strong*, /em/, =code=, dashes, links) is
+# parsed into ElementTree nodes *as text enters the tree*, rather than by regex
+# passes over the serialized HTML. That means the regexes never have to dodge
+# tags, ordering between passes stops mattering, and link targets (normalised
+# ids) are never mistaken for suit symbols -- so opponent bids in parens like
+# (2D) render their suit glyph instead of being suppressed by a lookahead.
+
+# suit letter -> (css class, unicode glyph). Matches the old &clubs;/&diams;/…
+# entities: ♣ U+2663, ♦ U+2666, ♥ U+2665, ♠ U+2660.
+_SUIT = {
+    "C": ("ccolor", "♣"),
+    "D": ("dcolor", "♦"),
+    "H": ("hcolor", "♥"),
+    "S": ("scolor", "♠"),
+}
+
+# Character-level replacements that do not nest: a digit-led suit run (2C, 2N,
+# (2D)'s "2D"), the !x suit shorthand, and long dashes.
+_PLAIN_RE = re.compile(
+    r"(?P<suit>\d(?:[CDHS]|N(?!T))+)"  # 2C, 2H, 2N -> NT, 2CH ...
+    r"|!(?P<bang>[cdhs])"  # !c !d !h !s shorthand
+    r"|(?P<dash>---|--)"  # em / en dash
+)
+
+# Constructs that can contain further inline markup. Boundary lookbehinds mirror
+# the old passes: *strong* may start a text node or follow whitespace/">"; /em/
+# and =code= must follow whitespace (or start a node) so mid-word "/" and "="
+# (e.g. "GF/FG", "count = 15") are left alone.
+_INLINE_RE = re.compile(
+    r"(?P<link>\[(?P<ltext>[^\[\]]*?)\]\((?P<ltarget>[^()]+?)\))"
+    r"|(?<![^\s>])\*(?P<strong>\S(?:[^*]*\S)?)\*"
+    r"|(?<!\S)/(?P<em>\S(?:[^/]*\S)?)/"
+    r"|(?<!\S)=(?P<code>\S(?:[^=]*\S)?)="
+)
+
+
+def _suit_span(letter):
+    cls, glyph = _SUIT[letter]
+    span = ET.Element("span")
+    span.set("class", cls)
+    span.text = glyph
+    return span
+
+
+def _plain(text):
+    """List of str | span Element for the non-nesting inline bits."""
+    nodes = []
+    pos = 0
+    for m in _PLAIN_RE.finditer(text):
+        if m.start() > pos:
+            nodes.append(text[pos : m.start()])
+        if m.group("suit") is not None:
+            run = m.group("suit")
+            nodes.append(run[0])  # the digit
+            for ch in run[1:]:
+                if ch == "N":
+                    nodes.append("NT")
+                else:
+                    nodes.append(_suit_span(ch))
+        elif m.group("bang") is not None:
+            nodes.append(_suit_span(m.group("bang").upper()))
+        else:  # dash
+            nodes.append("—" if m.group("dash") == "---" else "–")
+        pos = m.end()
+    if pos < len(text):
+        nodes.append(text[pos:])
+    return nodes
+
+
+def parse_inline(text):
+    """Parse a run of human text into a list of str | ET.Element."""
+    nodes = []
+    pos = 0
+    while True:
+        m = _INLINE_RE.search(text, pos)
+        if not m:
+            nodes.extend(_plain(text[pos:]))
+            return nodes
+        if m.start() > pos:
+            nodes.extend(_plain(text[pos : m.start()]))
+        if m.group("link") is not None:
+            a = ET.Element("a")
+            a.set("href", normalise_header_id(m.group("ltarget").strip()))
+            _fill(a, m.group("ltext").strip())
+            nodes.append(a)
+        elif m.group("strong") is not None:
+            el = ET.Element("strong")
+            _fill(el, m.group("strong"))
+            nodes.append(el)
+        elif m.group("em") is not None:
+            el = ET.Element("em")
+            _fill(el, m.group("em"))
+            nodes.append(el)
+        else:  # code
+            el = ET.Element("code")
+            _fill(el, m.group("code"))
+            nodes.append(el)
+        pos = m.end()
+
+
+def _attach(parent, node):
+    """Append a str | Element to parent following ElementTree's text/tail model:
+    leading text goes on parent.text, text after a child goes on that child's
+    tail."""
+    if isinstance(node, str):
+        if len(parent) == 0:
+            parent.text = (parent.text or "") + node
+        else:
+            last = parent[-1]
+            last.tail = (last.tail or "") + node
+    else:
+        parent.append(node)
+
+
+def _fill(parent, text):
+    """Set parent's inline content (text + child elements) from human text."""
+    for node in parse_inline(text):
+        _attach(parent, node)
+
+
+# --- structural rendering ----------------------------------------------------
+
+
 def html_bidtable(et_element, children, indent_level_is_even):
     # `indent_level_is_even` let's us alternately cycle the css class for every indent of the bid table
     div_class = "start" if indent_level_is_even else "startOddIndent"
@@ -16,45 +141,24 @@ def html_bidtable(et_element, children, indent_level_is_even):
             bid = re.sub(r"^P$", "Pass", c.bid)
             bid = re.sub(r"^R$", "Rdbl", bid)
             bid = re.sub(r"^D$", "Dbl", bid)
-            div.text = bid
-            div.tail = desc_rows[0]
-            desc_rows = desc_rows[1:]
-            for dr in desc_rows:
-                rowli = ET.SubElement(ul, "li")
-                rowdiv = ET.SubElement(rowli, "div")
-                rowdiv.attrib["class"] = div_class
-                rowdiv.text = " "
-                rowdiv.tail = dr
+            _fill(div, bid)
+            # description follows the bid div inside the same li (mixed content)
+            for node in parse_inline(desc_rows[0]):
+                _attach(li, node)
+            # Extra description lines live *inside* this li, before the child
+            # bids, so they read directly under the bid they belong to. (As
+            # sibling <li>s of the same <ul> they would be emitted after the
+            # whole child subtree.) The empty bid div reproduces the bid column
+            # at every breakpoint, so no extra css is needed to align them.
+            for dr in desc_rows[1:]:
+                rowdiv = ET.SubElement(li, "div")
+                rowdiv.attrib["class"] = "descRow"
+                biddiv = ET.SubElement(rowdiv, "div")
+                biddiv.attrib["class"] = div_class
+                biddiv.text = " "
+                for node in parse_inline(dr):
+                    _attach(rowdiv, node)
             html_bidtable(li, c.children, not indent_level_is_even)
-
-
-def html_replace_suits(matchobj):
-    text = matchobj.group(0)
-    text = text.replace("C", '<span class="ccolor">&clubs;</span>')
-    text = text.replace("D", '<span class="dcolor">&diams;</span>')
-    text = text.replace("H", '<span class="hcolor">&hearts;</span>')
-    text = text.replace("S", '<span class="scolor">&spades;</span>')
-    text = text.replace("N", "NT")
-    return text
-
-
-def replace_strong(matchobj):
-    return "<strong>" + matchobj.group(1) + "</strong>"
-
-
-def replace_italics(matchobj):
-    return "<em>" + matchobj.group(1) + "</em>"
-
-
-def replace_truetype(matchobj):
-    return "<code>" + matchobj.group(1) + "</code>"
-
-
-def replace_markdown_link(matchobj):
-    link_text = matchobj.group(1).strip()
-    fragment_link_target = matchobj.group(2).strip()
-    norm_target = normalise_header_id(fragment_link_target)
-    return '<a href="{target}"/>{text}</a>'.format(target=norm_target, text=link_text)
 
 
 def normalise_header_id(text):
@@ -99,7 +203,7 @@ def to_html(content):
         content_type, text = c
         if content_type == bml.ContentType.PARAGRAPH:
             element = ET.SubElement(body, "p")
-            element.text = text
+            _fill(element, text)
         elif content_type == bml.ContentType.BIDTABLE:
             if not text.export:
                 continue
@@ -107,33 +211,30 @@ def to_html(content):
             element.attrib["class"] = "bidtable"
             html_bidtable(element, text.children, indent_level_is_even=True)
         elif content_type == bml.ContentType.H1:
-            # The id="text" part for the header elements unfortunately could be regex replaced
-            # later, so normalise it so that cannot happen given known suit replacements
             id_attr = normalise_header_id(text)
             h1_id_text_pairs.append((id_attr, text))
             element = ET.SubElement(body, "h1", {"id": id_attr})
-            element.text = text
+            _fill(element, text)
         elif content_type == bml.ContentType.H2:
             element = ET.SubElement(body, "h2", {"id": normalise_header_id(text)})
-            element.text = text
+            _fill(element, text)
         elif content_type == bml.ContentType.H3:
             element = ET.SubElement(body, "h3", {"id": normalise_header_id(text)})
-            element.text = text
+            _fill(element, text)
         elif content_type == bml.ContentType.H4:
             element = ET.SubElement(body, "h4", {"id": normalise_header_id(text)})
-            element.text = text
+            _fill(element, text)
         elif content_type == bml.ContentType.LIST:
             element = ET.SubElement(body, "ul")
             for l in text:
                 li = ET.SubElement(element, "li")
-                li.text = l
+                _fill(li, l)
         elif content_type == bml.ContentType.ENUM:
             element = ET.SubElement(body, "ol")
             for l in text:
                 li = ET.SubElement(element, "li")
-                li.text = l
+                _fill(li, l)
 
-    # <a href="#" class="top-link">Top</a>
     top_link = ET.SubElement(body, "a")
     top_link.attrib["class"] = "top-link"
     top_link.attrib["href"] = "#"
@@ -144,58 +245,14 @@ def to_html(content):
 
     for header_id, header_text in h1_id_text_pairs:
         list_item = ET.SubElement(links_div, "ul")
-        link = ET.SubElement(list_item, "a")
-        # link.attrib['class'] = ''
+        li = ET.SubElement(list_item, "li")
+        link = ET.SubElement(li, "a")
         link.attrib["href"] = f"#{header_id}"
-        link.text = header_text
+        _fill(link, header_text)
 
     title = ET.SubElement(head, "title")
     title.text = bml.meta["TITLE"]
-    htmlstring = str(ET.tostring(html), "UTF8")
-
-    suit_replace_regex = re.compile(
-        r"""
-        \d  # a number
-        (
-            [CDHS]  # CDHS to replace with spans, but will have to check it's not in [] or () somehow
-            (?![^\(]*\)) # but was not inside parentheses, the link target syntax
-            | # or an N (but not NT which will become NT after replacement)
-            N(?!T)
-        )+ # 1+ suit or N symbols to replace
-        """,
-        re.VERBOSE,
-    )
-    htmlstring = re.sub(suit_replace_regex, html_replace_suits, htmlstring)
-
-    htmlstring = re.sub(
-        r"(?<=\s)\*(\S[^*<>]*)\*", replace_strong, htmlstring, flags=re.DOTALL
-    )
-    htmlstring = re.sub(
-        r"(?<=\s)/(\S[^/<>]*)/", replace_italics, htmlstring, flags=re.DOTALL
-    )
-    htmlstring = re.sub(
-        r"(?<=\s)=(\S[^=<>]*)=", replace_truetype, htmlstring, flags=re.DOTALL
-    )
-
-    # Replaces !c!d!h!s with suit symbols
-    htmlstring = htmlstring.replace("!c", '<span class="ccolor">&clubs;</span>')
-    htmlstring = htmlstring.replace("!d", '<span class="dcolor">&diams;</span>')
-    htmlstring = htmlstring.replace("!h", '<span class="hcolor">&hearts;</span>')
-    htmlstring = htmlstring.replace("!s", '<span class="scolor">&spades;</span>')
-
-    # Replace "long dashes"
-    htmlstring = htmlstring.replace("---", "&mdash;")
-    htmlstring = htmlstring.replace("--", "&ndash;")
-
-    # (?!...) negative lookahead assert
-    # [link text](target url / relative fragment url)
-    # link text may have had text replaced to use suit symbols etc.
-    # The target () needs to match the target header "id", so must not be substituted
-    # target url avoids text replacement by normalising that text, normalised in the
-    # same way as a header id
-    htmlstring = re.sub(r"\[(.*?)]\((.+?)\)", replace_markdown_link, htmlstring)
-
-    return htmlstring
+    return str(ET.tostring(html), "UTF8")
 
 
 if __name__ == "__main__":
@@ -218,6 +275,5 @@ if __name__ == "__main__":
         outputfile = os.path.basename(sys.argv[1]).split(".")[0]
 
     h = to_html(bml.content)
-    f = open(outputfile + ".html", "w")
-    f.write(h)
-    f.close()
+    with open(outputfile + ".html", "w", encoding="utf-8") as f:
+        f.write(h)

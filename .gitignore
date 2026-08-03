@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# snapshot harness scratch: what a failing check actually produced
+tests/.snapshot-out/

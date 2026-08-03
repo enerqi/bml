@@ -29,6 +29,11 @@
   to check out example.htm, example.tex (and example.pdf) and
   example.bss to see how BML converts to different formats.
 
+  Working on the tools themselves? ARCHITECTURE.md explains how the
+  parser and the exporters are built (pipeline, the bid-tree
+  indentation algorithm, the inline-markup pass, the golden-snapshot
+  tests) and where the sharp edges are.
+
 * Using the BML converters
 
   You need Python v.3 or higher in order to use the BML
