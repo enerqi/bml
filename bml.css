@@ -1,10 +1,24 @@
+    /* THE LOOK, as tokens: every colour and the font are named here once, so a theme is a second
+       `:root { ... }` after this sheet that redefines some of them (the bridge workbench's Settings writes
+       one). The values below are the original look. */
     :root {
         --nav-link-color: Sienna;
+        --bml-font: 'Open Sans', 'Segoe UI', sans-serif;
+        --bml-page-bg: antiquewhite;
+        --bml-ink: black;
+        --bml-bid-col: rgb(165, 252, 247, 0.4);
+        --bml-bid-col-alt: rgb(135, 206, 250, 0.4);
+        --bml-link: rgb(0, 102, 204);
+        --bml-club: MediumSeaGreen;
+        --bml-diamond: Orange;
+        --bml-heart: Red;
+        --bml-spade: var(--bml-ink);
     }
 
     body {
-        font-family: 'Open Sans';
-        background: antiquewhite;
+        font-family: var(--bml-font);
+        background: var(--bml-page-bg);
+        color: var(--bml-ink);
     }
 
     .content {
@@ -16,7 +30,7 @@
         display: inline-block;
         vertical-align: top;
         width: 72px;
-        background-color: rgb(165, 252, 247, 0.4);
+        background-color: var(--bml-bid-col);
         padding-left: 8px;
     }
 
@@ -24,7 +38,7 @@
         display: inline-block;
         vertical-align: top;
         width: 72px;
-        background-color: rgb(135, 206, 250, 0.4);
+        background-color: var(--bml-bid-col-alt);
         padding-left: 8px;
     }
 
@@ -46,25 +60,25 @@
     }
 
     .ccolor {
-        color: MediumSeaGreen
+        color: var(--bml-club)
     }
 
     .dcolor {
-        color: Orange
+        color: var(--bml-diamond)
     }
 
     .hcolor {
-        color: Red
+        color: var(--bml-heart)
     }
 
     .scolor {
-        color: Black
+        color: var(--bml-spade)
     }
 
     a:link,
     a:visited {
         text-decoration: none;
-        color: rgb(0, 102, 204);
+        color: var(--bml-link);
     }
 
     .top-link {
