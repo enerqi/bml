@@ -161,6 +161,124 @@ def html_bidtable(et_element, children, indent_level_is_even):
             html_bidtable(li, c.children, not indent_level_is_even)
 
 
+# --- the four blocks the parser always recognised and html used to drop -------
+#
+# Deal diagrams, pipe tables, description lists and auctions were LaTeX-only. Each
+# is a plain element tree here, with the inline renderer (`_fill`) doing the suit
+# symbols, so `!s` / `4S` come out as they do everywhere else on the page. The
+# Odin port (bridge-markup html.odin) builds the same trees, byte for byte.
+
+_SEATS = {"N": "North", "E": "East", "S": "South", "W": "West"}
+
+# An auction's spelled-out calls; anything else is a bid, through the inline renderer.
+_CALLS = {"P": "Pass", "D": "Dbl", "R": "Rdbl", "AP": "All pass"}
+
+
+def _diagram_head(diagram):
+    """The header row as one line: board, dealer, vulnerability, contract, lead."""
+    parts = []
+    if diagram.board:
+        parts.append("Board %s" % diagram.board)
+    if diagram.dealer:
+        parts.append("Dealer %s" % _SEATS[diagram.dealer])
+    if diagram.vul:
+        parts.append("Vul %s" % diagram.vul)
+    if diagram.contract:
+        level, strain, doubling, declarer = diagram.contract
+        if level == "P":
+            parts.append("Passed out")
+        else:
+            strain = "NT" if strain == "N" else "!" + strain.lower()
+            parts.append("%s%s%s by %s" % (level, strain, doubling or "", _SEATS[declarer]))
+    if diagram.lead:
+        suit, card = diagram.lead
+        parts.append("Lead !%s%s" % (suit.lower(), card))
+    return " · ".join(parts)
+
+
+def _hand_cell(row, hand):
+    """One seat's cell: four lines of suit symbol and cards, a void as a dash. Empty for a hand not given."""
+    cell = ET.SubElement(row, "td")
+    if not hand:
+        return
+    cell.attrib["class"] = "hand"
+    for suit, cards in zip("shdc", hand):
+        line = ET.SubElement(cell, "div")
+        _fill(line, "!%s %s" % (suit, "—" if cards == "-" else cards))
+
+
+def html_diagram(body, diagram):
+    box = ET.SubElement(body, "div")
+    box.attrib["class"] = "bml-diagram"
+    head = _diagram_head(diagram)
+    if head:
+        caption = ET.SubElement(box, "div")
+        caption.attrib["class"] = "bml-deal-head"
+        _fill(caption, head)
+    table = ET.SubElement(box, "table")
+    table.attrib["class"] = "bml-deal"
+    top = ET.SubElement(table, "tr")
+    ET.SubElement(top, "td")
+    _hand_cell(top, diagram.north)
+    ET.SubElement(top, "td")
+    middle = ET.SubElement(table, "tr")
+    _hand_cell(middle, diagram.west)
+    ET.SubElement(middle, "td").attrib["class"] = "compass"
+    _hand_cell(middle, diagram.east)
+    bottom = ET.SubElement(table, "tr")
+    ET.SubElement(bottom, "td")
+    _hand_cell(bottom, diagram.south)
+    ET.SubElement(bottom, "td")
+
+
+def _is_rule(cells):
+    """A `|---+---|` row: a line, not data."""
+    return len(cells) > 0 and re.match(r"[+-]+$", cells[0]) is not None
+
+
+def html_table(body, rows):
+    """Rows before the first rule are the header; a later rule draws a line above the row after it."""
+    rows = [r for r in rows if r]
+    first_rule = next((i for i, r in enumerate(rows) if _is_rule(r)), -1)
+    table = ET.SubElement(body, "table")
+    table.attrib["class"] = "bml-table"
+    ruled = False
+    for i, cells in enumerate(rows):
+        if _is_rule(cells):
+            ruled = i != first_rule
+            continue
+        tr = ET.SubElement(table, "tr")
+        if ruled:
+            tr.attrib["class"] = "rule"
+            ruled = False
+        tag = "th" if i < first_rule else "td"
+        for cell in cells:
+            _fill(ET.SubElement(tr, tag), cell)
+
+
+def html_description(body, items):
+    dl = ET.SubElement(body, "dl")
+    dl.attrib["class"] = "bml-desc"
+    for item in items:
+        term, sep, text = item.partition(" :: ")
+        if sep:
+            _fill(ET.SubElement(dl, "dt"), term.strip())
+            _fill(ET.SubElement(dl, "dd"), text.strip())
+        else:
+            _fill(ET.SubElement(dl, "dd"), item.strip())
+
+
+def html_auction(body, rows):
+    table = ET.SubElement(body, "table")
+    table.attrib["class"] = "bml-auction"
+    for calls in rows:
+        if not calls:
+            continue
+        tr = ET.SubElement(table, "tr")
+        for call in calls:
+            _fill(ET.SubElement(tr, "td"), _CALLS.get(call, call))
+
+
 def normalise_header_id(text):
     # don't want spaces
     # don't want text that can be replaced with html suit special symbols
@@ -234,6 +352,14 @@ def to_html(content):
             for l in text:
                 li = ET.SubElement(element, "li")
                 _fill(li, l)
+        elif content_type == bml.ContentType.DIAGRAM:
+            html_diagram(body, text)
+        elif content_type == bml.ContentType.TABLE:
+            html_table(body, text)
+        elif content_type == bml.ContentType.DESCRIPTION:
+            html_description(body, text)
+        elif content_type == bml.ContentType.BIDDING:
+            html_auction(body, text)
 
     top_link = ET.SubElement(body, "a")
     top_link.attrib["class"] = "top-link"

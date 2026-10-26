@@ -1,0 +1,47 @@
+#+TITLE: The less common constructs
+
+* Deal diagrams
+
+A full deal, with every header field:
+
+#35, Dealer N, None vul, played 4SXS with hK lead
+N: Kxx    T9     xxx  Q987x
+E: Jx     AJxxx  AJx  KTx
+S: A987xx -      Q9xx Axx
+W: QT     KQxxxx KTx  Jx
+
+Two hands, no-trump by declarer, a passed-out header after it:
+
+Dealer S, EW, 3NS
+N AKQJ T98 - AKQJ9
+S - AKQJ AKQJT 8765
+
+#7 PASS
+W 2 2 2 2
+
+* Tables
+
+| Opening | Shows | Forcing |
+|---+---+---|
+| 1C | 16+ | yes |
+| 1D | 11--15, 2+ !d | no |
+|---+---+---|
+| 2C | 6+ !c | no |
+
+| no | header | here |
+| just | rows | too |
+
+* Description lists
+
+- Multi :: a weak two in either major
+- Lebensohl :: 2N relay after *their* interference over 1N
+- an item with no term
+
+* Auctions
+
+1H P 1S P
+2C P 4N P
+5D P 6S AP
+
+(1N) D P P
+2H P P D

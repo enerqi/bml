@@ -38,6 +38,9 @@ GOLDEN_DIR = os.path.join(HERE, "golden_html")
 # BRIDGE_DIR otherwise.
 SOURCES = {
     "example": os.path.join(snapshot_lib.REPO, "example.txt"),
+    # Deal diagrams, pipe tables, description lists and auctions: rendered to html since 2026-10-26, and
+    # used nowhere in the corpus, so this fixture is what holds them (bridge-markup's `just parity` too).
+    "constructs": os.path.join(snapshot_lib.REPO, "tests", "constructs.bml"),
     "competitive-bidding": os.path.join(
         snapshot_lib.BRIDGE_DIR, "competitive-bidding.bml"
     ),

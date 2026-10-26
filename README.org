@@ -293,8 +293,9 @@
    has already been set, it will not be overwritten.
 
 ** Deal diagrams
-   It is possible to create deal diagrams with BML. *Right now these
-   can only be exported to LaTeX.* Here's an example of a deal diagram:
+   It is possible to create deal diagrams with BML. They are exported to
+   LaTeX and to HTML (a compass with the header as a caption line).
+   Here's an example of a deal diagram:
 
    #+begin_src
    N None 35 4SXS hK
@@ -320,7 +321,7 @@
                        the player which played the contract. In the
                        example above this is ~4SXS~ (four spades
                        doubled, played by south). If the board is
-                       passed out, write ~P~.
+                       passed out, write ~PASS~.
    - Lead :: The deal is written with a lower-case suit (~s h d c~), followed by
              the card (a number or ~A K Q J T~).
 
@@ -350,6 +351,41 @@
    S: A987xx -      Q9xx Axx
    W: QT     KQxxxx KTx  Jx
    #+end_src
+
+** Auctions
+
+   A block whose rows are four calls each is an auction, shown as a
+   grid with a column per seat. ~P~, ~D~, ~R~ and ~AP~ are written out
+   as Pass, Dbl, Rdbl and All pass; opponents' calls may be bracketed.
+
+   #+BEGIN_SRC
+   1H P 1S P
+   2C P 4N P
+   5D P 6S AP
+   #+END_SRC
+
+** Tables
+
+   Rows between pipes make a table. A row of only ~-~ and ~+~ draws a
+   line: the first one makes the rows above it the header, a later one
+   draws a line above the row after it.
+
+   #+BEGIN_SRC
+   | Opening | Shows | Forcing |
+   |---+---+---|
+   | 1C      | 16+   | yes     |
+   | 1D      | 11-15 | no      |
+   #+END_SRC
+
+** Description lists
+
+   An unordered list in which any item has ~ :: ~ is a description
+   list: each item is a term and what it means.
+
+   #+BEGIN_SRC
+   - Multi :: a weak two in either major
+   - Lebensohl :: 2N relay after their interference over 1N
+   #+END_SRC
 
 ** Lists
 

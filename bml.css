@@ -88,6 +88,65 @@
         left: 95%;
     }
 
+    /* The four blocks html used to drop (deal diagrams, pipe tables, description lists, auctions). Lines in
+       `currentColor`, so they follow the page's ink in every look. */
+    div.bml-diagram {
+        margin: 0.8em 0;
+    }
+
+    div.bml-deal-head {
+        font-size: 0.9em;
+        margin-bottom: 0.3em;
+    }
+
+    table.bml-deal {
+        border-collapse: collapse;
+    }
+
+    table.bml-deal td {
+        vertical-align: top;
+        padding: 0.15em 0.9em;
+        white-space: nowrap;
+    }
+
+    table.bml-deal td.compass {
+        width: 3.5em;
+        height: 3.5em;
+        border: 1px solid currentColor;
+    }
+
+    table.bml-table, table.bml-auction {
+        border-collapse: collapse;
+        margin: 0.6em 0;
+    }
+
+    table.bml-table th, table.bml-table td {
+        padding: 0.2em 0.8em;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    table.bml-table th {
+        border-bottom: 1px solid currentColor;
+    }
+
+    table.bml-table tr.rule td {
+        border-top: 1px solid currentColor;
+    }
+
+    table.bml-auction td {
+        padding: 0.1em 0.9em 0.1em 0;
+        min-width: 3em;
+    }
+
+    dl.bml-desc dt {
+        font-weight: bold;
+    }
+
+    dl.bml-desc dd {
+        margin: 0 0 0.4em 1.5em;
+    }
+
      @media all and (max-width: 699px) {
         .content {
             margin: 0.5%;
