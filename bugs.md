@@ -6,12 +6,23 @@ the justfile watch recipe for example, which uses doit and dodo.py to trigger ht
 
 # testing?
 
-non-initially, but building up a corpus of tests for the html rendering may help the user end to end experience
+Done. `tests/` holds unit tests for `bmlbids` and `Node.bidrepr`, plus golden
+snapshots of the parse trees and the rendered html for a corpus of real
+documents. `uv run --with pytest python -m pytest tests`; regenerate goldens
+with `python tests/snapshot_parse.py` / `snapshot_html.py` after reviewing the
+drift. See ARCHITECTURE.md §7.
 
 
 # bugs?
 
+**All five are fixed** (2026-08-01), each verified by its own repro; see
+ARCHITECTURE.md for how the parser works now and `tests/test_bml_nodes.py` for
+the regression tests. Kept below for the reasoning, which is still the best
+description of why the code looks the way it does.
+
 ## 1. (2D) opponent bid does not render the suit symbol (the real bug behind the !x workaround)
+
+**FIXED.** Inline markup is now parsed into the element tree before serialization (`parse_inline`), so the paren lookahead is gone: `(2D)` renders the diamond.
 
 e.g. competitive-bidding.bml, "Opponents open Multi 2D" section
 
@@ -38,6 +49,8 @@ its uppercase for symbol replacement, the paren lookahead can be dropped and
 
 ## 2. X instead of Dbl (meaning double) rendering
 
+**FIXED** with bug 3 — the column rule was the cause. `X` and `Dbl` now produce identical trees.
+
 same section e.g. competitive-bidding.bml, "Opponents open Multi 2D" section
 
 (2D)
@@ -47,6 +60,8 @@ same section e.g. competitive-bidding.bml, "Opponents open Multi 2D" section
 Flipping to X instead of X tends to break everything under it
 
 ## 3. bracketed (opponents bids) can destroy indent
+
+**FIXED.** `_is_bid_row` decides new-bid vs description-continuation from the row's *shape* (bid-like first token, or a ` = ` separator), not from an absolute column, so token width no longer changes the tree.
 
 Confirmed. Same root cause as bug 2: the "line-break in a description"
 feature is driven by a raw character *column* number, not by tree depth.
@@ -83,6 +98,8 @@ mark description continuations explicitly (e.g. require them to be indented
 
 ## 4. suit shorthand / non-digit first bid token downgrades whole block to a paragraph
 
+**FIXED.** `get_content_type` keeps the original test and adds `_BIDTABLE_FIRST_RE` + a ` = ` requirement, so `(2!d)` and `Pass--…` blocks are bidtables.
+
 This is the real mechanism behind bug 1 (it is NOT an indentation bug).
 
 `get_content_type` in `bml.py` line 288 decides a block is a bidtable with:
@@ -115,6 +132,8 @@ shorthand and bare doubles (`X`, `Dbl`) as a leading bid token, or normalise
 detection regex; `(2!d)--P--(2!h)` would break since the first token fails it.)
 
 ## 5. nesting of complex trees often mis renders without correct indentation
+
+**FIXED** by the same change as 3; `(2D)--P--(2!h)--P--(2!s)` with nested children parses correctly.
 
 same section e.g. competitive-bidding.bml, "Opponents open Multi 2D" section
 

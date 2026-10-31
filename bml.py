@@ -365,19 +365,187 @@ class ContentType:
     TABLE = 10
     DESCRIPTION = 11
     BIDDING = 12
+    CAPTION = 13
+    BOX = 14
+    ENDBOX = 15
+
+
+# One hand line of a diagram, `N: AKQ2 J43 T98 765` - the same pattern as the whole-block test's.
+_HAND_RE = r"""^\s*([NESW]):?\s*
+                           ([2-9AKQJTx-]+)\s+
+                           ([2-9AKQJTx-]+)\s+
+                           ([2-9AKQJTx-]+)\s+
+                           ([2-9AKQJTx-]+)"""
+# As bridge-markup's `parse_hand_line`: ASCII whitespace only, and anything may follow the fourth suit.
+_HAND_LINE_RE = re.compile(r"[ \t\r\v\f]*([NESW]):?[ \t\r\v\f]*[2-9AKQJTx-]+(?:[ \t\r\v\f]+[2-9AKQJTx-]+){3}")
+
+# What is left of a block with a diagram in it, for `content_from_file` to classify next (see get_content_type).
+diagram_rest = None
+
+
+# `#+CAPTION: text` as a block's first line: a title over what follows it - a diagram, an auction, a table -
+# that is not a heading (no anchor, not in the page's links). Org-mode's own spelling; any case.
+_CAPTION_RE = re.compile(r"[ \t]*#\+CAPTION:[ \t]*(.*)\Z", re.IGNORECASE)
+
+# `#BOX` ... `#ENDBOX`: what is between them is drawn as a box of two columns - the diagram, auction, table
+# and caption it starts with on the left, the text after them on the right (bml2html). Each marker line is a
+# block of its own (`_box_split`), whatever is around it. Any case.
+#
+# `#BOX note|info|tip|warning Title` frames it as a CALLOUT of that type, the title after its label; `#BOX Title`
+# with no type, a plain frame with the title. The BOX block's payload is (type, title), each "" when absent.
+_BOX_RE = re.compile(r"[ \t]*#[ \t]*(?:(ENDBOX)|BOX(?:[ \t]+(.*?))?)[ \t]*\Z", re.IGNORECASE)
+_BOX_TYPES = ("note", "info", "tip", "warning")
+
+
+def _box_payload(rest):
+    """(type, title) of a `#BOX` line's words (no spaces at either end): the first word when it is a type, any
+    case, and the rest; else no type and all of it. A trailing class hook is the box's classes, carried on the
+    title (`Classed`), which is then a `Classed` even when it is empty."""
+    rest, classes = _class_hook(rest)
+    words = re.match(r"([^ \t]+)[ \t]*(.*)\Z", rest)
+    if words and words.group(1).lower() in _BOX_TYPES:
+        kind, title = words.group(1).lower(), words.group(2)
+    else:
+        kind, title = "", rest
+    return kind, _with_classes(title, classes) if classes else title
+
+
+# A CLASS HOOK: `{.name}` (or `{.one .two}`) at the end of a heading, a `#BOX` line or a `#+CAPTION:` line,
+# after a space or alone (a newline may follow it: the last block of a file keeps its own), gives what that
+# line makes those CSS classes, for a stylesheet of the author's own
+# to aim at. It is not part of the text: the heading's anchor, the quiz's section headings and every other
+# reader of the text see it without the hook. Names are ASCII: a letter or `_`, then letters, digits, `_`, `-`.
+_CLASS_HOOK_RE = re.compile(r"(?:\A|[ \t]+)\{[ \t]*((?:\.[A-Za-z_][A-Za-z0-9_-]*[ \t]*)+)\}[ \t\r\n]*\Z")
+_CLASS_NAME_RE = re.compile(r"\.([A-Za-z_][A-Za-z0-9_-]*)")
+
+
+class Classed(str):
+    """A heading, caption or box title whose line ended in a class hook: the text without it, and the classes
+    (space separated) in `classes`. A str, so everything that reads the text is unchanged."""
+
+    classes = ""
+
+
+def _with_classes(text, classes):
+    out = Classed(text)
+    out.classes = classes
+    return out
+
+
+def _class_hook(text):
+    """`text` without a trailing class hook, and the hook's classes ("" for none)."""
+    hook = _CLASS_HOOK_RE.search(text)
+    if not hook:
+        return text, ""
+    return text[: hook.start()], " ".join(_CLASS_NAME_RE.findall(hook.group(1)))
+
+
+def _classed(text):
+    """`text` with a trailing class hook taken off into a `Classed`; `text` itself when it has none."""
+    rest, classes = _class_hook(text)
+    return _with_classes(rest, classes) if classes else text
+
+
+def _box_split(block):
+    """The block cut at its `#BOX` / `#ENDBOX` lines, each marker a block of its own; [block] when it has none."""
+    out, run = [], []
+    for line in block.split("\n"):
+        if _BOX_RE.match(line):
+            if run:
+                out.append("\n".join(run))
+                run = []
+            out.append(line)
+        else:
+            run.append(line)
+    if run:
+        out.append("\n".join(run))
+    return out
+
+
+# One call of an auction: a level bid (`1H`, `3NT`, `2N`), P, X, XX, D, R, AP, `?` for the call asked about, or
+# `-` for a seat before the dealer; any of them in brackets for the opponents'. Then, optionally, its MARK: `!`
+# alerted, `*` / `**` / `^1` for the note under the auction that explains it (`auction_parts`).
+_CALL_RE = re.compile(r"\(?(?:[1-7](?:NT|[CDHSN])|P|X|XX|D|R|AP|\?|-)\)?(?:!|\*+|\^[0-9]+)?\Z")
+_SEATS = ("N", "E", "S", "W")
+# A note under an auction starts `*` or `^1`.
+_NOTE_RE = re.compile(r"\*|\^[0-9]")
+
+
+def auction_parts(rows):
+    """An auction's rows - each a list of tokens, none empty - as (header, calls, notes): the `W N E S` row if
+    the first is one (else None), the rows of calls, and the note rows. The notes start at the first row
+    after a row of calls whose first token starts `*` or `^1`; every row after it is a note, or a note's
+    continuation."""
+    header = None
+    if rows and all(t.upper() in _SEATS for t in rows[0]):
+        header, rows = rows[0], rows[1:]
+    for i, row in enumerate(rows):
+        if i > 0 and _NOTE_RE.match(row[0]):
+            return header, rows[:i], rows[i:]
+    return header, rows, []
+
+
+def _is_auction(text):
+    """Whether a block is an auction: every token of its call rows a call (`_CALL_RE`), at least two of them -
+    with a `W N E S` row first if wanted, and notes after (`auction_parts`). A row can hold any number of calls,
+    so an auction that stops short, or one dealt by a seat other than the first column's, is still one. A bid
+    table is not one: its `=` is not a call. Case-blind: `1d p 1s` is typed as often as `1D P 1S`, and is
+    written in capitals (bml2html)."""
+    rows = [r.split() for r in text.split("\n")]
+    _, calls, _ = auction_parts([r for r in rows if r])
+    tokens = [t.upper() for r in calls for t in r]
+    return len(tokens) >= 2 and all(_CALL_RE.match(t) for t in tokens)
+
+
+def _is_diagram_header(line):
+    """Whether a line carries any of a diagram header's fields: dealer, vulnerability, board, lead, contract."""
+    d = Diagram(line, [])
+    return any(f is not None for f in (d.dealer, d.vul, d.board, d.lead, d.contract))
+
+
+def _split_diagram(text):
+    """(text before, diagram lines, text after) when a block holds a diagram AND other text - no blank line
+    between them; else None. The diagram is the block's first run of hand lines, with the line above it as
+    its header when that line has a header's field (so prose above it, "a diagram", is not taken for one)."""
+    lines = text.split("\n")
+    first = next((i for i, line in enumerate(lines) if _HAND_LINE_RE.match(line)), None)
+    if first is None:
+        return None
+    start = first - 1 if first > 0 and _is_diagram_header(lines[first - 1]) else first
+    end = first
+    while end + 1 < len(lines) and _HAND_LINE_RE.match(lines[end + 1]):
+        end += 1
+    before, after = "\n".join(lines[:start]), "\n".join(lines[end + 1 :])
+    if not before.strip() and not after.strip():
+        return None
+    return before, "\n".join(lines[start : end + 1]), after
 
 
 def get_content_type(text):
     global meta, vulnerability, seat
 
+    box = _BOX_RE.match(text)
+    if box:
+        if box.group(1):
+            return (ContentType.ENDBOX, None)
+        return (ContentType.BOX, _box_payload(box.group(2) or ""))
+
     if text.startswith("****"):
-        return (ContentType.H4, text[4:].lstrip())
+        return (ContentType.H4, _classed(text[4:].lstrip()))
     if text.startswith("***"):
-        return (ContentType.H3, text[3:].lstrip())
+        return (ContentType.H3, _classed(text[3:].lstrip()))
     if text.startswith("**"):
-        return (ContentType.H2, text[2:].lstrip())
+        return (ContentType.H2, _classed(text[2:].lstrip()))
     if text.startswith("*"):
-        return (ContentType.H1, text[1:].lstrip())
+        return (ContentType.H1, _classed(text[1:].lstrip()))
+
+    # A caption line: the caption here, and the rest of the block goes round again (as `diagram_rest`).
+    global diagram_rest
+    first, _, rest = text.partition("\n")
+    caption = _CAPTION_RE.match(first)
+    if caption:
+        diagram_rest = rest
+        return (ContentType.CAPTION, _classed(caption.group(1).strip()))
 
     # The first element is empty, therefore [1:]
     if re.match(r"^\s*-", text):
@@ -402,10 +570,7 @@ def get_content_type(text):
             re.split(r"^\s*\d*\.\s*", text, flags=re.MULTILINE)[1:],
         )
 
-    if re.match(
-        r"^\s*\(?[1-7]?[NTPDRCDHS]\)?\s+\(?[1-7]?[NTPDRCDHS]\)?\s+\(?[1-7]?[NTPDRCDHS]\)?\s+\(?[1-7]?[NTPDRCDHS]\)?\s*",
-        text,
-    ):
+    if _is_auction(text):
         table = []
         for r in text.split("\n"):
             if r:
@@ -431,6 +596,23 @@ def get_content_type(text):
         for r in rows:
             table.append([c.strip() for c in re.findall(r"(?<=\|)[^\|]+", r)])
         return (ContentType.TABLE, table)
+
+    # A diagram with TEXT BEFORE OR AFTER IT in the same block (no blank line between). Text before is
+    # classified here and the rest (`diagram_rest`, which `content_from_file` picks up) goes round again;
+    # then the diagram is returned and the text after it goes round. Before the whole-block test below,
+    # which would otherwise take a line of text above the hands for the header (losing it, and the real
+    # header), take a diagram plus ONE line of text below as a diagram and drop the text, and fail on two,
+    # leaving the block to the `#` branch as a nonsense bid table.
+    split = _split_diagram(text)
+    if split:
+        before, head, after = split
+        if before.strip():
+            content = get_content_type(before)
+            diagram_rest = text[len(before) + 1 :]
+            return content
+        diagram_rest = after
+        hands = re.findall(_HAND_RE, head, flags=re.MULTILINE | re.VERBOSE)
+        return (ContentType.DIAGRAM, Diagram(head.split("\n")[0], hands))
 
     # diagrams
     hands = re.findall(
@@ -507,10 +689,17 @@ def content_from_file(filename):
 
         paragraphs = re.split(r"([ ]*\n){2,}", text)
 
+    global diagram_rest
+    paragraphs = [piece for block in paragraphs for piece in _box_split(block)]
     for c in paragraphs:
-        content_type = get_content_type(c)
-        if content_type:
-            content.append(content_type)
+        # A block can hold a diagram AND text around it (`_split_diagram`), or a caption over the rest of it:
+        # the rest goes round again.
+        while c is not None:
+            diagram_rest = None
+            content_type = get_content_type(c)
+            if content_type:
+                content.append(content_type)
+            c = diagram_rest
     return content
 
 

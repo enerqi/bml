@@ -110,15 +110,17 @@ runs from most specific to least:
 | order | test on the block's start | ContentType | payload |
 |---|---|---|---|
 | 1 | `****` / `***` / `**` / `*` | H4…H1 | header text (str) |
+| 0 | a `#BOX` / `#ENDBOX` line (any case) - `_box_split` makes each a block of its own first | BOX / ENDBOX | BOX: (type, title) - `#BOX note\|info\|tip\|warning Title` or `#BOX Title`, each "" when absent; ENDBOX: None. bml2html draws the blocks between as a two-column box (diagram / auction / table / caption left, the rest right), framed as a callout when it has a type or a title. A trailing class hook `{.name}` on a heading, `#BOX` or `#+CAPTION:` line comes off the text into a `Classed` str (its `classes`), which bml2html adds to the element's class |
+| 1b | first line `#+CAPTION: text` (any case) | CAPTION | the text; the rest of the block goes round again (`diagram_rest`) |
 | 2 | `-` bullets, with ` :: ` | DESCRIPTION | list of items |
 | 3 | `-` bullets | LIST | list of items |
 | 4 | `#VUL` / `#SEAT` | *(none)* | sets parser state, block disappears |
 | 5 | `1.` | ENUM | list of items |
-| 6 | four call-ish columns | BIDDING | list of rows (an auction diagram) |
+| 6 | calls only, at least two, then `*` / `^1` notes (`_is_auction`, `auction_parts`) | BIDDING | list of rows (an auction diagram) |
 | 7 | bid-shaped first token | **BIDTABLE** | `Node` tree |
 | 8 | `\|` | TABLE | list of rows of cells |
 | 9 | four `N: … … … …` hand lines | DIAGRAM | `Diagram` |
-| 10 | `#+KEY: value` | *(none)* | sets `meta[KEY]`, block disappears |
+| 10 | `#+KEY: value` | *(none)* | sets `meta[KEY]` (the first value wins), block disappears. bml2html reads `TITLE` (the page title) and `CSS` (stylesheets linked after bml.css, space separated) |
 | 11 | any other `#` directive | BIDTABLE | `Node` tree (macro-only blocks) |
 | 12 | any non-whitespace | PARAGRAPH | text (str) |
 

@@ -13,10 +13,45 @@
         --bml-diamond: Orange;
         --bml-heart: Red;
         --bml-spade: var(--bml-ink);
+        --bml-font-size: 100%;
+        --bml-heading-font: var(--bml-font);
+        /* THE BID CELLS' SHAPE: what paints the cell (a colour, or a gradient that fades it out), its corners,
+           and an inset shadow (a bar down its left edge drawn INSIDE the cell, so the column does not move).
+           The original: the tint, square, no bar. */
+        --bml-bid-paint: var(--bml-bid-col);
+        --bml-bid-paint-alt: var(--bml-bid-col-alt);
+        --bml-bid-radius: 0;
+        --bml-bid-shadow: none;
+        --bml-bid-shadow-alt: none;
+        /* Solid versions of the two tints, for a bar down a cell's edge (a 40% tint as a thin bar is a ghost). */
+        --bml-bid-bar: rgb(95, 200, 195);
+        --bml-bid-bar-alt: rgb(95, 165, 225);
+        /* The callouts: each type's edge and label colour, and the tint behind it. A tint is its own token
+           because a stylesheet cannot make a translucent copy of a colour it is given (the workbench's preview
+           engine has no color-mix), so whoever sets a colour sets its tint as well. */
+        --bml-callout: rgb(128, 128, 128);
+        --bml-callout-tint: rgba(128, 128, 128, 0.08);
+        --bml-note: rgb(50, 115, 200);
+        --bml-note-tint: rgba(50, 115, 200, 0.09);
+        --bml-info: rgb(50, 115, 200);
+        --bml-info-tint: rgba(50, 115, 200, 0.09);
+        --bml-tip: rgb(35, 145, 85);
+        --bml-tip-tint: rgba(35, 145, 85, 0.09);
+        --bml-warning: rgb(215, 130, 15);
+        --bml-warning-tint: rgba(215, 130, 15, 0.11);
+        /* The seat / vulnerability tag in a description, and a vulnerable seat on a diagram's compass. */
+        --bml-cond: rgba(100, 130, 200, 0.18);
+        --bml-vul: rgb(200, 40, 40);
+        --bml-vul-ink: white;
+        /* Pipe tables and auctions: translucent greys, so they read on any page. */
+        --bml-table-line: rgba(128, 128, 128, 0.45);
+        --bml-table-head: rgba(128, 128, 128, 0.16);
+        --bml-table-stripe: rgba(128, 128, 128, 0.07);
     }
 
     body {
         font-family: var(--bml-font);
+        font-size: var(--bml-font-size);
         background: var(--bml-page-bg);
         color: var(--bml-ink);
     }
@@ -26,20 +61,29 @@
         max-width: 900px;
     }
 
+    /* A bid's cell: 80px across in all, as the 80px a nested table is indented by - 6px padding, 70px wide,
+       and a 4px GAP before the description, so the tint does not run into the text after it (it read as
+       cramped). The gap is margin, not cell, so no shape paints it. */
     div.start {
         display: inline-block;
         vertical-align: top;
-        width: 72px;
-        background-color: var(--bml-bid-col);
-        padding-left: 8px;
+        width: 70px;
+        background: var(--bml-bid-paint);
+        border-radius: var(--bml-bid-radius);
+        box-shadow: var(--bml-bid-shadow);
+        padding-left: 6px;
+        margin-right: 4px;
     }
 
     div.startOddIndent {
         display: inline-block;
         vertical-align: top;
-        width: 72px;
-        background-color: var(--bml-bid-col-alt);
-        padding-left: 8px;
+        width: 70px;
+        background: var(--bml-bid-paint-alt);
+        border-radius: var(--bml-bid-radius);
+        box-shadow: var(--bml-bid-shadow-alt);
+        padding-left: 6px;
+        margin-right: 4px;
     }
 
     div.bidtable {
@@ -50,6 +94,28 @@
         list-style-type: none;
         margin: 0;
         padding: 0;
+    }
+
+    /* A description's second and later lines: the empty bid div only keeps the text in its column. A browser
+       collapses its lone space to nothing, so it shows no colour; the workbench preview gives it a line's
+       height, which drew a stack of empty bid cells. Uncoloured here, so both look the same. */
+    div.descRow > div.start, div.descRow > div.startOddIndent {
+        background: transparent;
+        box-shadow: none;
+    }
+
+    h1, h2, h3, h4 {
+        font-family: var(--bml-heading-font);
+    }
+
+    /* A seat or vulnerability condition in a description - (NV), 1st/2nd, passed hand - as a small tag, so where
+       a meaning changes stands out from the meaning. Translucent, so it reads in any look. */
+    span.bml-cond {
+        font-size: 0.85em;
+        padding: 0 0.35em;
+        border-radius: 0.6em;
+        background: var(--bml-cond);
+        white-space: nowrap;
     }
 
     div.bidtable li ul {
@@ -94,6 +160,110 @@
         margin: 0.8em 0;
     }
 
+    /* `#+CAPTION:` - a title over the diagram, auction or table under it, so it sits close to that block
+       and pulls its top margin in. */
+    div.bml-caption {
+        font-weight: 600;
+        margin: 0.9em 0 0 0;
+    }
+
+    div.bml-caption + div.bml-diagram, div.bml-caption + table, div.bml-caption + div.bidtable {
+        margin-top: 0.3em;
+    }
+
+    /* `#BOX` ... `#ENDBOX`: the diagram / auction on the left, the text beside it. Table layout rather than
+       flex, which the workbench's preview engine draws as a browser does. On a narrow screen the text goes
+       under instead. */
+    div.bml-box {
+        display: table;
+        margin: 0.8em 0;
+    }
+
+    div.bml-box-side, div.bml-box-text {
+        display: table-cell;
+        vertical-align: top;
+    }
+
+    div.bml-box-side {
+        padding-right: 1.8em;
+        white-space: nowrap;
+    }
+
+    div.bml-box-side > :first-child, div.bml-box-text > :first-child {
+        margin-top: 0;
+    }
+
+    @media all and (max-width: 699px) {
+        div.bml-box, div.bml-box-side, div.bml-box-text {
+            display: block;
+        }
+    }
+
+    /* `#BOX note|info|tip|warning Title`: the box in a CALLOUT frame - a coloured left edge, a light tint of the same
+       colour, and a head with the type's label and the title. `#BOX Title` alone: the same frame in grey. Each
+       type's colours are `:root` tokens named per type, not one variable set on the frame: the workbench's
+       preview engine does not resolve a variable defined on an element (the label came out black, measured). */
+    div.bml-callout {
+        margin: 0.9em 0;
+        padding: 0.5em 0.9em;
+        border-left: 4px solid var(--bml-callout);
+        border-radius: 0 4px 4px 0;
+        background: var(--bml-callout-tint);
+    }
+
+    div.bml-callout-head {
+        font-weight: 600;
+        margin-bottom: 0.35em;
+    }
+
+    div.bml-callout.bml-note {
+        border-left-color: var(--bml-note);
+        background: var(--bml-note-tint);
+    }
+
+    div.bml-note span.bml-callout-label {
+        color: var(--bml-note);
+    }
+
+    div.bml-callout.bml-info {
+        border-left-color: var(--bml-info);
+        background: var(--bml-info-tint);
+    }
+
+    div.bml-info span.bml-callout-label {
+        color: var(--bml-info);
+    }
+
+    div.bml-callout.bml-tip {
+        border-left-color: var(--bml-tip);
+        background: var(--bml-tip-tint);
+    }
+
+    div.bml-tip span.bml-callout-label {
+        color: var(--bml-tip);
+    }
+
+    div.bml-callout.bml-warning {
+        border-left-color: var(--bml-warning);
+        background: var(--bml-warning-tint);
+    }
+
+    div.bml-warning span.bml-callout-label {
+        color: var(--bml-warning);
+    }
+
+    div.bml-callout > div.bml-box {
+        margin: 0;
+    }
+
+    div.bml-callout div.bml-box-side > :last-child, div.bml-callout div.bml-box-text > :last-child {
+        margin-bottom: 0;
+    }
+
+    div.bml-callout div.bml-box-text > :first-child {
+        margin-top: 0;
+    }
+
     div.bml-deal-head {
         font-size: 0.9em;
         margin-bottom: 0.3em;
@@ -112,7 +282,40 @@
     table.bml-deal td.compass {
         width: 3.5em;
         height: 3.5em;
+        padding: 0;
         border: 1px solid currentColor;
+        vertical-align: middle;
+    }
+
+    /* The compass inside it, as a hand record draws one: N E S W round the edge, the board number in the middle,
+       the dealer's letter bold and underlined, a vulnerable seat in red. */
+    table.bml-deal table.bml-compass {
+        border-collapse: collapse;
+        width: 100%;
+        height: 100%;
+        font-size: 0.75em;
+        line-height: 1.2;
+    }
+
+    table.bml-deal table.bml-compass td {
+        padding: 0.1em 0.2em;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    table.bml-compass td.seat.vul {
+        background: var(--bml-vul);
+        color: var(--bml-vul-ink);
+    }
+
+    table.bml-compass td.seat.dealer {
+        font-weight: 700;
+        text-decoration: underline;
+    }
+
+    table.bml-compass td.board {
+        font-weight: 600;
+        opacity: 0.7;
     }
 
     table.bml-table, table.bml-auction {
@@ -120,23 +323,59 @@
         margin: 0.6em 0;
     }
 
+    /* Translucent greys rather than colours, so the table reads on any page background (light or dark theme). */
+    table.bml-table {
+        border: 1px solid currentColor;
+    }
+
     table.bml-table th, table.bml-table td {
-        padding: 0.2em 0.8em;
+        padding: 0.25em 0.8em;
         text-align: left;
         vertical-align: top;
+        border: 1px solid var(--bml-table-line);
     }
 
     table.bml-table th {
+        font-weight: 600;
+        background: var(--bml-table-head);
         border-bottom: 1px solid currentColor;
+    }
+
+    table.bml-table tr:nth-child(even) td {
+        background: var(--bml-table-stripe);
     }
 
     table.bml-table tr.rule td {
         border-top: 1px solid currentColor;
     }
 
-    table.bml-auction td {
+    table.bml-auction td, table.bml-auction th {
         padding: 0.1em 0.9em 0.1em 0;
         min-width: 3em;
+        text-align: left;
+        white-space: nowrap; /* "All pass" on one line; set here because a page with no doctype (quirks mode) does not pass white-space into tables */
+    }
+
+    /* The `W N E S` header row. */
+    table.bml-auction th {
+        font-weight: 600;
+        border-bottom: 1px solid var(--bml-table-line);
+    }
+
+    /* A call's mark (`2C*`, `2C^1`, `P!`) and the notes under the auction that the marks point at. */
+    sup.bml-note, sup.bml-alert {
+        font-size: 0.7em;
+        line-height: 0;
+        padding-left: 0.1em;
+    }
+
+    sup.bml-alert {
+        font-weight: 700;
+    }
+
+    div.bml-auction-notes {
+        font-size: 0.9em;
+        margin: -0.3em 0 0.6em 0;
     }
 
     dl.bml-desc dt {
@@ -160,12 +399,12 @@
 
         /*smaller font, compress the bid columns*/
         div.start {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
         div.startOddIndent {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
 
         .nav-links {
@@ -186,12 +425,12 @@
 
         /*smaller font, compress the bid columns*/
         div.start {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
         div.startOddIndent {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
 
         .nav-links {
@@ -228,12 +467,12 @@
 
         /*pair with smaller font*/
         div.start {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
         div.startOddIndent {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
 
         .nav-links {
@@ -271,12 +510,12 @@
 
         /*pair with smaller font*/
         div.start {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
         div.startOddIndent {
-            width: 48px;
-            padding-left: 4px;
+            width: 45px;
+            padding-left: 3px;
         }
 
         .nav-links {
